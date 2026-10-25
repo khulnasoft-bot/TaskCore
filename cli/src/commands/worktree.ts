@@ -443,6 +443,12 @@ function createConfiguredStorageFromTaskcoreConfig(
     };
   }
 
+  if (config.storage.provider === "vercel_blob") {
+    throw new Error(
+      "Worktree storage does not support the vercel_blob provider; use local_disk or s3.",
+    );
+  }
+
   const prefix = normalizeS3Prefix(config.storage.s3.prefix);
   let s3ClientPromise: Promise<any> | null = null;
   async function getS3Client() {

@@ -22,6 +22,10 @@ export function defaultStorageConfig(): StorageConfig {
       prefix: "",
       forcePathStyle: false,
     },
+    vercelBlob: {
+      access: "private",
+      prefix: "",
+    },
   };
 }
 
@@ -42,6 +46,11 @@ export async function promptStorage(
         value: "s3" as const,
         label: "S3 compatible",
         hint: "for cloud/object storage backends",
+      },
+      {
+        value: "vercel_blob" as const,
+        label: "Vercel Blob",
+        hint: "for deployments hosted on Vercel",
       },
     ],
     initialValue: base.provider,
@@ -77,6 +86,52 @@ export async function promptStorage(
         baseDir: baseDir.trim(),
       },
       s3: base.s3,
+      vercelBlob: base.vercelBlob,
+    };
+  }
+
+  if (provider === "vercel_blob") {
+    const access = await p.select({
+      message: "Vercel Blob access",
+      options: [
+        {
+          value: "private" as const,
+          label: "Private (recommended)",
+          hint: "served through Taskcore with authentication",
+        },
+        {
+          value: "public" as const,
+          label: "Public",
+          hint: "blobs are readable by anyone with the URL",
+        },
+      ],
+      initialValue: base.vercelBlob.access,
+    });
+
+    if (p.isCancel(access)) {
+      p.cancel("Setup cancelled.");
+      process.exit(0);
+    }
+
+    const prefix = await p.text({
+      message: "Blob pathname prefix (optional)",
+      defaultValue: base.vercelBlob.prefix,
+      placeholder: "taskcore/",
+    });
+
+    if (p.isCancel(prefix)) {
+      p.cancel("Setup cancelled.");
+      process.exit(0);
+    }
+
+    return {
+      provider: "vercel_blob",
+      localDisk: base.localDisk,
+      s3: base.s3,
+      vercelBlob: {
+        access,
+        prefix: prefix.trim(),
+      },
     };
   }
 
@@ -154,5 +209,6 @@ export async function promptStorage(
       prefix: prefix.trim(),
       forcePathStyle,
     },
+    vercelBlob: base.vercelBlob,
   };
 }

@@ -320,6 +320,10 @@ export function buildWorktreeConfig(input: {
         prefix: source?.storage.s3.prefix ?? "",
         forcePathStyle: source?.storage.s3.forcePathStyle ?? false,
       },
+      vercelBlob: {
+        access: source?.storage.vercelBlob?.access ?? "private",
+        prefix: source?.storage.vercelBlob?.prefix ?? "",
+      },
     },
     secrets: {
       provider: source?.secrets.provider ?? "local_encrypted",

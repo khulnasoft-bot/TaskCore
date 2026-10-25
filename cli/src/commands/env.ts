@@ -211,6 +211,22 @@ function collectDeploymentEnvRows(
   const storageS3ForcePathStyle =
     process.env.TASKCORE_STORAGE_S3_FORCE_PATH_STYLE ??
     String(config?.storage?.s3?.forcePathStyle ?? false);
+  const storageVercelBlobToken =
+    process.env.TASKCORE_STORAGE_VERCEL_BLOB_TOKEN ??
+    process.env.BLOB_READ_WRITE_TOKEN ??
+    "";
+  const storageVercelBlobStoreId =
+    process.env.TASKCORE_STORAGE_VERCEL_BLOB_STORE_ID ??
+    process.env.BLOB_STORE_ID ??
+    "";
+  const storageVercelBlobAccess =
+    process.env.TASKCORE_STORAGE_VERCEL_BLOB_ACCESS ??
+    config?.storage?.vercelBlob?.access ??
+    "private";
+  const storageVercelBlobPrefix =
+    process.env.TASKCORE_STORAGE_VERCEL_BLOB_PREFIX ??
+    config?.storage?.vercelBlob?.prefix ??
+    "";
 
   const rows: EnvVarRow[] = [
     {
@@ -348,7 +364,7 @@ function collectDeploymentEnvRows(
           ? "config"
           : "default",
       required: false,
-      note: "Storage provider (local_disk or s3)",
+      note: "Storage provider (local_disk, s3, or vercel_blob)",
     },
     {
       key: "TASKCORE_STORAGE_LOCAL_DIR",
@@ -415,6 +431,50 @@ function collectDeploymentEnvRows(
           : "default",
       required: false,
       note: "Set true for path-style access on compatible providers",
+    },
+    {
+      key: "TASKCORE_STORAGE_VERCEL_BLOB_TOKEN",
+      value: storageVercelBlobToken,
+      source: process.env.TASKCORE_STORAGE_VERCEL_BLOB_TOKEN
+        ? "env"
+        : process.env.BLOB_READ_WRITE_TOKEN
+          ? "env"
+          : "missing",
+      required: false,
+      note: "Vercel Blob read-write token (or set BLOB_READ_WRITE_TOKEN)",
+    },
+    {
+      key: "TASKCORE_STORAGE_VERCEL_BLOB_STORE_ID",
+      value: storageVercelBlobStoreId,
+      source: process.env.TASKCORE_STORAGE_VERCEL_BLOB_STORE_ID
+        ? "env"
+        : process.env.BLOB_STORE_ID
+          ? "env"
+          : "missing",
+      required: false,
+      note: "Vercel Blob store id for OIDC (or set BLOB_STORE_ID)",
+    },
+    {
+      key: "TASKCORE_STORAGE_VERCEL_BLOB_ACCESS",
+      value: storageVercelBlobAccess,
+      source: process.env.TASKCORE_STORAGE_VERCEL_BLOB_ACCESS
+        ? "env"
+        : config?.storage?.vercelBlob?.access
+          ? "config"
+          : "default",
+      required: false,
+      note: "Vercel Blob access level (public or private)",
+    },
+    {
+      key: "TASKCORE_STORAGE_VERCEL_BLOB_PREFIX",
+      value: storageVercelBlobPrefix,
+      source: process.env.TASKCORE_STORAGE_VERCEL_BLOB_PREFIX
+        ? "env"
+        : config?.storage?.vercelBlob?.prefix
+          ? "config"
+          : "default",
+      required: false,
+      note: "Optional Vercel Blob pathname prefix",
     },
   ];
 

@@ -74,6 +74,10 @@ function createTempConfig(serverPort: number): string {
         prefix: "",
         forcePathStyle: false,
       },
+      vercelBlob: {
+        access: "private",
+        prefix: "",
+      },
     },
     secrets: {
       provider: "local_encrypted",

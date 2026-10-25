@@ -26,6 +26,8 @@ describe("taskcore config schema", () => {
     expect(parsed.database.backup.dir).toBe("~/.taskcore/instances/default/data/backups");
     expect(parsed.logging.logDir).toBe("~/.taskcore/instances/default/logs");
     expect(parsed.storage.localDisk.baseDir).toBe("~/.taskcore/instances/default/data/storage");
+    expect(parsed.storage.vercelBlob.access).toBe("private");
+    expect(parsed.storage.vercelBlob.prefix).toBe("");
     expect(parsed.secrets.localEncrypted.keyFilePath).toBe("~/.taskcore/instances/default/secrets/master.key");
   });
 

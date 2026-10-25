@@ -58,6 +58,10 @@ function writeBaseConfig(configPath: string) {
         prefix: "",
         forcePathStyle: false,
       },
+      vercelBlob: {
+        access: "private",
+        prefix: "",
+      },
     },
     secrets: {
       provider: "local_encrypted",
