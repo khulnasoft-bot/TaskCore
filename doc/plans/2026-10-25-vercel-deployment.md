@@ -3,6 +3,12 @@
 Status: Proposal; `vercel_blob` storage provider implemented
 Date: 2026-10-25
 
+> Decision update (2026-10-25): the full-server path (Option D) was selected.
+> The migration plan and feasibility gates live in
+> `doc/plans/2026-10-25-vercel-full-server-migration.md`. The Option A
+> recommendation below remains the fallback if the Phase 0 bundle/cold-start
+> gate fails.
+
 ## 1. Verdict
 
 The `ui` package can be deployed to Vercel as a static Vite site. The

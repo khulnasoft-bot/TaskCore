@@ -5,7 +5,7 @@
       "id": "mcp:taskcoreMe",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreMe",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L290:taskcoreme",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L343:taskcoreme",
       "primaryDisposition": "control_plane_owned",
       "semanticOperation": "injected_actor_context",
       "expectedMockState": "runtime_decision_record"
@@ -14,7 +14,7 @@
       "id": "mcp:taskcoreInboxLite",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreInboxLite",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L296:taskcoreinboxlite",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L349:taskcoreinboxlite",
       "primaryDisposition": "control_plane_owned",
       "semanticOperation": "runner_work_selection",
       "expectedMockState": "runtime_decision_record"
@@ -23,7 +23,7 @@
       "id": "mcp:taskcoreListAgents",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreListAgents",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L302:taskcorelistagents",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L355:taskcorelistagents",
       "primaryDisposition": "optional_agent_tool",
       "semanticOperation": "list_agents",
       "expectedMockState": "operation_result"
@@ -32,7 +32,7 @@
       "id": "mcp:taskcoreListSkills",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreListSkills",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L308:taskcorelistskills",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L365:taskcorelistskills",
       "primaryDisposition": "optional_agent_tool",
       "semanticOperation": "list_company_skills",
       "expectedMockState": "operation_result"
@@ -41,7 +41,7 @@
       "id": "mcp:taskcoreGetAgent",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreGetAgent",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L314:taskcoregetagent",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L375:taskcoregetagent",
       "primaryDisposition": "optional_agent_tool",
       "semanticOperation": "get_agent",
       "expectedMockState": "operation_result"
@@ -50,7 +50,7 @@
       "id": "mcp:taskcoreListIssues",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreListIssues",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L323:taskcorelistissues",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L389:taskcorelistissues",
       "primaryDisposition": "optional_agent_tool",
       "semanticOperation": "search_tasks",
       "expectedMockState": "operation_result"
@@ -59,7 +59,7 @@
       "id": "mcp:taskcoreGetIssue",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreGetIssue",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L338:taskcoregetissue",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L408:taskcoregetissue",
       "primaryDisposition": "always_agent_tool",
       "semanticOperation": "get_task_context",
       "expectedMockState": "operation_result"
@@ -68,7 +68,7 @@
       "id": "mcp:taskcoreGetHeartbeatContext",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreGetHeartbeatContext",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L344:taskcoregetheartbeatcontext",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L415:taskcoregetheartbeatcontext",
       "primaryDisposition": "always_agent_tool",
       "semanticOperation": "get_task_context",
       "expectedMockState": "operation_result"
@@ -77,7 +77,7 @@
       "id": "mcp:taskcoreListComments",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreListComments",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L353:taskcorelistcomments",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L432:taskcorelistcomments",
       "primaryDisposition": "always_agent_tool",
       "semanticOperation": "get_task_history",
       "expectedMockState": "operation_result"
@@ -86,7 +86,7 @@
       "id": "mcp:taskcoreGetComment",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreGetComment",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L366:taskcoregetcomment",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L448:taskcoregetcomment",
       "primaryDisposition": "always_agent_tool",
       "semanticOperation": "get_task_history",
       "expectedMockState": "operation_result"
@@ -95,7 +95,7 @@
       "id": "mcp:taskcoreListIssueApprovals",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreListIssueApprovals",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L373:taskcorelistissueapprovals",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L458:taskcorelistissueapprovals",
       "primaryDisposition": "always_agent_tool",
       "semanticOperation": "get_task_context",
       "expectedMockState": "operation_result"
@@ -104,7 +104,7 @@
       "id": "mcp:taskcoreListDocuments",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreListDocuments",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L379:taskcorelistdocuments",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L468:taskcorelistdocuments",
       "primaryDisposition": "always_agent_tool",
       "semanticOperation": "list_documents",
       "expectedMockState": "operation_result"
@@ -113,7 +113,7 @@
       "id": "mcp:taskcoreGetDocument",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreGetDocument",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L385:taskcoregetdocument",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L478:taskcoregetdocument",
       "primaryDisposition": "always_agent_tool",
       "semanticOperation": "read_document",
       "expectedMockState": "operation_result"
@@ -122,7 +122,7 @@
       "id": "mcp:taskcoreListDocumentRevisions",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreListDocumentRevisions",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L392:taskcorelistdocumentrevisions",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L488:taskcorelistdocumentrevisions",
       "primaryDisposition": "always_agent_tool",
       "semanticOperation": "list_document_revisions",
       "expectedMockState": "operation_result"
@@ -131,7 +131,7 @@
       "id": "mcp:taskcoreListProjects",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreListProjects",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L402:taskcorelistprojects",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L498:taskcorelistprojects",
       "primaryDisposition": "optional_agent_tool",
       "semanticOperation": "list_projects",
       "expectedMockState": "operation_result"
@@ -140,7 +140,7 @@
       "id": "mcp:taskcoreGetProject",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreGetProject",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L408:taskcoregetproject",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L508:taskcoregetproject",
       "primaryDisposition": "optional_agent_tool",
       "semanticOperation": "get_project",
       "expectedMockState": "operation_result"
@@ -149,7 +149,7 @@
       "id": "mcp:taskcoreGetIssueWorkspaceRuntime",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreGetIssueWorkspaceRuntime",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L417:taskcoregetissueworkspaceruntime",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L522:taskcoregetissueworkspaceruntime",
       "primaryDisposition": "optional_agent_tool",
       "semanticOperation": "get_workspace_runtime",
       "expectedMockState": "operation_result"
@@ -158,7 +158,7 @@
       "id": "mcp:taskcoreControlIssueWorkspaceServices",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreControlIssueWorkspaceServices",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L423:taskcorecontrolissueworkspaceservices",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L528:taskcorecontrolissueworkspaceservices",
       "primaryDisposition": "optional_agent_tool",
       "semanticOperation": "control_workspace_service",
       "expectedMockState": "operation_result"
@@ -167,7 +167,7 @@
       "id": "mcp:taskcoreWaitForIssueWorkspaceService",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreWaitForIssueWorkspaceService",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L440:taskcorewaitforissueworkspaceservice",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L548:taskcorewaitforissueworkspaceservice",
       "primaryDisposition": "optional_agent_tool",
       "semanticOperation": "wait_for_workspace_service",
       "expectedMockState": "operation_result"
@@ -176,7 +176,7 @@
       "id": "mcp:taskcoreListGoals",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreListGoals",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L466:taskcorelistgoals",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L582:taskcorelistgoals",
       "primaryDisposition": "optional_agent_tool",
       "semanticOperation": "list_goals",
       "expectedMockState": "operation_result"
@@ -185,7 +185,7 @@
       "id": "mcp:taskcoreGetGoal",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreGetGoal",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L472:taskcoregetgoal",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L592:taskcoregetgoal",
       "primaryDisposition": "optional_agent_tool",
       "semanticOperation": "get_goal",
       "expectedMockState": "operation_result"
@@ -194,7 +194,7 @@
       "id": "mcp:taskcoreListApprovals",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreListApprovals",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L478:taskcorelistapprovals",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L599:taskcorelistapprovals",
       "primaryDisposition": "optional_agent_tool",
       "semanticOperation": "list_approvals",
       "expectedMockState": "operation_result"
@@ -203,7 +203,7 @@
       "id": "mcp:taskcoreCreateApproval",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreCreateApproval",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L487:taskcorecreateapproval",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L611:taskcorecreateapproval",
       "primaryDisposition": "optional_agent_tool",
       "semanticOperation": "request_approval",
       "expectedMockState": "operation_result"
@@ -212,7 +212,7 @@
       "id": "mcp:taskcoreGetApproval",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreGetApproval",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L496:taskcoregetapproval",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L624:taskcoregetapproval",
       "primaryDisposition": "optional_agent_tool",
       "semanticOperation": "get_approval",
       "expectedMockState": "operation_result"
@@ -221,7 +221,7 @@
       "id": "mcp:taskcoreGetApprovalIssues",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreGetApprovalIssues",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L502:taskcoregetapprovalissues",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L634:taskcoregetapprovalissues",
       "primaryDisposition": "optional_agent_tool",
       "semanticOperation": "get_approval_context",
       "expectedMockState": "operation_result"
@@ -230,7 +230,7 @@
       "id": "mcp:taskcoreListApprovalComments",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreListApprovalComments",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L508:taskcorelistapprovalcomments",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L644:taskcorelistapprovalcomments",
       "primaryDisposition": "optional_agent_tool",
       "semanticOperation": "get_approval_context",
       "expectedMockState": "operation_result"
@@ -239,7 +239,7 @@
       "id": "mcp:taskcoreCreateIssue",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreCreateIssue",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L514:taskcorecreateissue",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L654:taskcorecreateissue",
       "primaryDisposition": "optional_agent_tool",
       "semanticOperation": "create_task",
       "expectedMockState": "operation_result"
@@ -248,7 +248,7 @@
       "id": "mcp:taskcoreUpdateIssue",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreUpdateIssue",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L521:taskcoreupdateissue",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L665:taskcoreupdateissue",
       "primaryDisposition": "optional_agent_tool",
       "semanticOperation": "semantic_task_disposition",
       "expectedMockState": "operation_result"
@@ -257,7 +257,7 @@
       "id": "mcp:taskcoreCheckoutIssue",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreCheckoutIssue",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L528:taskcorecheckoutissue",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L674:taskcorecheckoutissue",
       "primaryDisposition": "control_plane_owned",
       "semanticOperation": "atomic_checkout",
       "expectedMockState": "runtime_decision_record"
@@ -266,7 +266,7 @@
       "id": "mcp:taskcoreReleaseIssue",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreReleaseIssue",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L540:taskcorereleaseissue",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L694:taskcorereleaseissue",
       "primaryDisposition": "control_plane_owned",
       "semanticOperation": "runtime_release",
       "expectedMockState": "runtime_decision_record"
@@ -275,7 +275,7 @@
       "id": "mcp:taskcoreAddComment",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreAddComment",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L546:taskcoreaddcomment",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L705:taskcoreaddcomment",
       "primaryDisposition": "always_agent_tool",
       "semanticOperation": "report_progress",
       "expectedMockState": "operation_result"
@@ -284,7 +284,7 @@
       "id": "mcp:taskcoreSuggestTasks",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreSuggestTasks",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L553:taskcoresuggesttasks",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L716:taskcoresuggesttasks",
       "primaryDisposition": "always_agent_tool",
       "semanticOperation": "request_human_input",
       "expectedMockState": "operation_result"
@@ -293,7 +293,7 @@
       "id": "mcp:taskcoreAskUserQuestions",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreAskUserQuestions",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L565:taskcoreaskuserquestions",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L732:taskcoreaskuserquestions",
       "primaryDisposition": "always_agent_tool",
       "semanticOperation": "request_human_input",
       "expectedMockState": "operation_result"
@@ -302,7 +302,7 @@
       "id": "mcp:taskcoreRequestConfirmation",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreRequestConfirmation",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L577:taskcorerequestconfirmation",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L748:taskcorerequestconfirmation",
       "primaryDisposition": "always_agent_tool",
       "semanticOperation": "request_human_input",
       "expectedMockState": "operation_result"
@@ -311,7 +311,7 @@
       "id": "mcp:taskcoreRequestCheckboxConfirmation",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreRequestCheckboxConfirmation",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L589:taskcorerequestcheckboxconfirmation",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L764:taskcorerequestcheckboxconfirmation",
       "primaryDisposition": "always_agent_tool",
       "semanticOperation": "request_human_input",
       "expectedMockState": "operation_result"
@@ -320,7 +320,7 @@
       "id": "mcp:taskcoreUpsertIssueDocument",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreUpsertIssueDocument",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L601:taskcoreupsertissuedocument",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L780:taskcoreupsertissuedocument",
       "primaryDisposition": "always_agent_tool",
       "semanticOperation": "write_document",
       "expectedMockState": "operation_result"
@@ -329,7 +329,7 @@
       "id": "mcp:taskcoreRestoreIssueDocumentRevision",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreRestoreIssueDocumentRevision",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L612:taskcorerestoreissuedocumentrevision",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L791:taskcorerestoreissuedocumentrevision",
       "primaryDisposition": "optional_agent_tool",
       "semanticOperation": "restore_document_revision",
       "expectedMockState": "operation_result"
@@ -338,7 +338,7 @@
       "id": "mcp:taskcoreLinkIssueApproval",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreLinkIssueApproval",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L627:taskcorelinkissueapproval",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L806:taskcorelinkissueapproval",
       "primaryDisposition": "optional_agent_tool",
       "semanticOperation": "link_approval",
       "expectedMockState": "operation_result"
@@ -347,7 +347,7 @@
       "id": "mcp:taskcoreUnlinkIssueApproval",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreUnlinkIssueApproval",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L636:taskcoreunlinkissueapproval",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L819:taskcoreunlinkissueapproval",
       "primaryDisposition": "optional_agent_tool",
       "semanticOperation": "unlink_approval",
       "expectedMockState": "operation_result"
@@ -356,7 +356,7 @@
       "id": "mcp:taskcoreApprovalDecision",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreApprovalDecision",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L646:taskcoreapprovaldecision",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L829:taskcoreapprovaldecision",
       "primaryDisposition": "optional_agent_tool",
       "semanticOperation": "decide_approval",
       "expectedMockState": "operation_result"
@@ -365,7 +365,7 @@
       "id": "mcp:taskcoreAddApprovalComment",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreAddApprovalComment",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L668:taskcoreaddapprovalcomment",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L851:taskcoreaddapprovalcomment",
       "primaryDisposition": "optional_agent_tool",
       "semanticOperation": "comment_on_approval",
       "expectedMockState": "operation_result"
@@ -374,7 +374,7 @@
       "id": "mcp:taskcoreApiRequest",
       "kind": "legacy_mcp_tool",
       "name": "taskcoreApiRequest",
-      "sourceAnchor": "packages/mcp-server/src/tools.ts#L677:taskcoreapirequest",
+      "sourceAnchor": "packages/mcp-server/src/tools.ts#L864:taskcoreapirequest",
       "primaryDisposition": "optional_agent_tool",
       "semanticOperation": "test_only_api_escape_hatch",
       "expectedMockState": "operation_result"

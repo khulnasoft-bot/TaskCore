@@ -424,7 +424,7 @@ This starts the UI and API at `http://localhost:3100`. An embedded PostgreSQL da
 Local Claude and Codex subscription sign-in also needs Python 3 and the
 corresponding provider CLI on the Taskcore host. The Docker image includes them.
 
-Source development also builds the native Taskcore Runner when enabled (the self-hosted default). Install a Rust toolchain, or set `TASKCORE_RUNNER_BINARY` to a compatible prebuilt runner.
+Source development also builds the native Taskcore Runner when enabled (the self-hosted default). Install a Rust toolchain, or set `TASKCORE_RUNNER_BINARY` to a compatible prebuilt runner. If neither is available, `pnpm dev` skips the native runner build with a warning and continues with the legacy adapters; set `TASKCORE_REQUIRE_CARGO=1` to turn that warning into a hard failure.
 
 <br/>
 
